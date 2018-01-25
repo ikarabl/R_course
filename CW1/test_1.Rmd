@@ -1,0 +1,75 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
+
+---
+title: Test 1
+subtitle: "Linguistic data: quantitative analysis and visualisation"
+author: "George Moroz, Olga Lyashevskaya, Ilya Schurov"
+date: '25 Jan 2018'
+output: html_document
+---
+
+## Introduction
+Please fill out this Rmarkdown file. The answers provided should look like the following:  
+
+<img src="https://agricolamz.github.io/2018-MAG_R_course/img/Test1_example.png" width=100>
+
+## 1. Vectors
+Assign a vector of 11 elements (1, 0.3, 5, 6, 5, 3, 3.5, 4, 6, 9, 9.7) to the variable `test_a`.  
+Please provide your code here:  
+
+### 1.1  
+test_a <- c(1, 0.3, 5, 6, 5, 3, 3.5, 4, 6, 9, 9.7)
+
+Add 2 to each element of the vector test_a and assign the result to the variable `test_b`. Please provide your code here:  
+test_b <- test_a + 2
+### 1.2   
+test_b <- test_a + 2
+Calculate the difference between `test_a` and `test_b`. Please provide your code here: 
+
+
+### 1.3  
+ test_b - test_a
+Select the 3rd element of the vector `test_a`.  
+Please provide your code here:  
+
+### 1.4  
+test_a[3]
+Select the 3rd, 4th and 5th elements of the vector `test_a` and assign the result to the vector `test_c`.
+Please provide your code here:  
+
+### 1.5  
+test_c <- test_a[3:5]
+Print `test_c`.
+Please provide your code here:  
+
+
+### 1.6   
+test_c
+## Factors
+
+Create the vector `test_d` with the elements "apple", "lemon", "orange".
+
+
+### 2.1   
+test_d <- c("apple", "lemon", "orange")
+Convert them as factors to the variable `test_e`.  
+
+
+### 2.2   
+test_e <- factor(test_d)
+Please upload this Rmd file into the folder CW1 of your course repository.
