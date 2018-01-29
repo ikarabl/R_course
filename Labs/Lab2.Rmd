@@ -123,8 +123,8 @@ homo %>%
 ## Calculate 95% confidence interval for mean vowel duration.
 Please provide the answer below:
 ``` {r}
-mean_vowel_duration <- homo$vowel.duration.ms
-CI_mvd = 1.96*sd(mean_vowel_duration)/sqrt(length(mean_vowel_duration))
+vowel_duration <- homo$vowel.duration.ms
+CI_mvd = 1.96*sd(vowel_duration)/sqrt(length(vowel_duration))
 CI_mvd
 ```
 ### 2.1  
