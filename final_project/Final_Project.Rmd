@@ -1,0 +1,262 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+poetic <- read.csv("poetic.csv")
+
+
+poetic <- poetic[, c(5, 3, 11, 4, 2, 10, 6, 8, 7, 9)]
+
+
+
+# 5267 poems
+
+
+
+
+no_rhymes <- poetic[poetic$rhymes == 0, ]
+str(no_rhymes)
+
+# 21 poems with no rhymes
+poetic <- poetic[poetic$rhymes > 0, ]
+str(poetic)
+
+#Let's have a look
+
+poetic %>% 
+  ggplot(aes(century)) +
+  geom_bar(fill = "lightblue") +
+  labs(title = "Poems by century") +
+  theme_bw()
+
+
+```
+
+Let's make them even
+```{r}
+xx_cent <- poetic[poetic$century == "xx", ]
+xix_cent <- poetic[poetic$century == "xix", ]
+str(xx_cent)
+
+# Now there are 5246 poems 
+# Including 1528 XIX century poems and 3718 XX century poems
+
+
+
+set.seed(42)
+xx_cent_short <- sample_n(xx_cent, 1528)
+
+poems <- rbind(xix_cent, xx_cent_short)
+head(poems)
+```
+
+
+Let's some new columns that we'll need later: 
+ - average number of words per line in a poem, 
+ - percentage of verbs in a poem,
+ - percentage of verbs in rhyming zones in a poem.
+
+```{r}
+poems$words_per_line <- round(poems$words / poems$rhymes, 2)
+poems$percentage_verbs <- round(poems$verbs / poems$words, 2)
+poems$percentage_rhyming_verbs <- round(poems$rhyming_verbs / poems$rhymes, 2)
+
+head(poems)
+```
+
+
+How long is a poem on average in the 19th century and in the 20th century?
+```{r}
+poems %>% 
+  ggplot(aes(century, words))+
+  geom_point(aes(color = century)) +
+  labs(title = "Poem length in words by century") +
+  ylab("Number of words") +
+  theme_bw()
+
+
+
+
+```
+```{r}
+poems %>% 
+  group_by(century) %>% 
+  summarise(mean_words = mean(words))  %>% 
+  ggplot(aes(x = century, y = mean_words)) +
+  geom_col(fill = "lightblue") +
+  labs(title = "Mean poem length in words by century") +
+  ylab("Mean number of words") +
+  theme_bw()
+  
+```
+```{r}
+poems %>% 
+  group_by(century) %>% 
+  summarise(median_words = median(words))  %>% 
+  ggplot(aes(x = century, y = median_words)) +
+  geom_col(fill = "lightblue") +
+  labs(title = "Median poem length in words by century") +
+  ylab("Median number of words") +
+  theme_bw()
+
+```
+
+
+How long are the lines in poems on average?
+```{r}
+poems %>% 
+  group_by(century) %>%
+  summarise(mean_line_length = mean(words_per_line))
+```
+
+
+```{r}
+poems %>% 
+  ggplot(aes(century, words_per_line))+
+  geom_point(aes(color = century)) +
+  labs(title = "Line length in words by century") +
+  ylab("Average of words per line") +
+  theme_bw()
+```
+
+
+
+
+```{r}
+poems %>% 
+  group_by(century) %>%
+  summarise(mean_line_length = mean(words_per_line)) %>% 
+  ggplot(aes(x = century, y = mean_line_length)) +
+  geom_col(fill = "lightblue") +
+  labs(title = "Mean length of line by century") +
+  ylab("Mean length of line") +
+  theme_bw()
+  
+ 
+```
+Is the difference significant?
+```{r}
+
+
+poems %>% 
+  ggplot(aes(words_per_line, fill = century))+
+  geom_density(alpha = 0.2)
+
+
+```
+
+```{r}
+xix_cent$words_per_line <- round(xix_cent$words / xix_cent$rhymes, 2)
+xx_cent_short$words_per_line <- round(xx_cent_short$words / xx_cent_short$rhymes, 2)
+
+
+sd(xix_cent$words_per_line)
+sd(xx_cent_short$words_per_line)
+
+```
+
+
+The distributions don't have equal variances. Let's try Welch's t-test.
+```{r}
+t.test(xix_cent$words_per_line, xx_cent_short$words_per_line, alternative = "two.sided", var.equal = FALSE)
+
+
+```
+
+
+I suppose we can say that 20th century poems have significantly shorter lines than 19th century poems.
+
+Now what about rhyming verbs?
+```{r}
+head(poems)
+```
+
+
+```{r}
+
+btest <- function(x, n, p) {binom.test(x, n, p, alternative=
+                           "two.sided", conf.level = 0.95)$p.value}
+poems$pval <- mapply(btest, poems$rhyming_verbs, poems$rhymes, poems$percentage_verbs)
+
+poems$reject_null_hyp <- poems$pval < 0.05
+  
+head(poems)  
+
+```
+
+
+
+```{r}
+poems$fewer_rhyming_verbs <- poems$percentage_rhyming_verbs < poems$percentage_verbs
+
+head(poems)
+```
+
+```{r}
+significantly_fewer_r_verbs <- poems[(poems$fewer_rhyming_verbs == TRUE & 
+                                        poems$reject_null_hyp == TRUE), ]
+significantly_fewer_r_verbs
+```
+```{r}
+significantly_more_r_verbs <- poems[(poems$fewer_rhyming_verbs == FALSE & 
+                                        poems$reject_null_hyp == TRUE), ]
+str(significantly_more_r_verbs)
+```
+
+```{r}
+poems %>% 
+  group_by(century, reject_null_hyp) %>% 
+  summarise(n())
+  
+```
+
+```{r}
+poems %>% 
+  group_by(century, reject_null_hyp) %>% 
+  summarise(number = n()) %>% 
+  ggplot(aes(century, reject_null_hyp, label = number)) +
+  geom_point(aes(size = number, color = century))+
+  geom_text() +
+  scale_size(range = c(10, 40))+
+  guides(size = F) +
+  labs(title = "Not much disproportion of verbs in rhyming zones")+
+  ylab("Significance")+
+  theme_bw()
+
+```
+
+```{r}
+contingency_table <- matrix(c(511, 1017, 303, 1225), nrow = 2, ncol = 2, byrow = TRUE)
+dimnames(contingency_table) <- list(c("XIX century", "XX century"),
+                                    c("more rhyming verbs", "no disproportion"))
+                                  
+contingency_table
+```
+
+```{r}
+fisher.test(contingency_table)
+```
+
+
+
+Apparently, we can conclude that the majority of poems in our sample do not show a disproporion of verbs in rhyming zones. Only 5 poems in the entire sample of over 3000 poems are significantly less likely to allow verbs in rhyming zones. Conversely, about a quarter of all poems in the sample are more show more verbs in the rhyming zone than in the poem in general. This preference is significantly more likely to occur in 19th century poems as opposed to 20th century poems.
+
+
+
+
+
+
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
