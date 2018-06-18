@@ -1,11 +1,17 @@
 ---
 title: "Linguistic Data Analysis Final Project"
+date: "19 June 2018"
+author: "Irina Sokolova"
 output: html_notebook
 ---
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+## Materials
+**Data:** https://github.com/ikarabl/R_course/blob/master/final_project/poetic.csv
+
 
 ```{r}
 library(tidyverse)
