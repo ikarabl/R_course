@@ -1,0 +1,261 @@
+---
+title: "Linguistic Data Analysis Final Project"
+date: "19 June 2018"
+author: "Irina Sokolova"
+output: html_notebook
+---
+
+### Materials
+**Data:** https://github.com/ikarabl/R_course/blob/master/final_project/poetic.csv
+
+## Introduction
+It is believed by some poets that verb rhymes are inferior to other kinds of rhyme as verbs often have similar word forms and are therefore easier to rhyme. I wanted to find out if poets really do tend to avoid putting verbs in rhyming zones. 
+
+## Research hypothesis
+For each poem, my hypothesis is that the percentage of verbs in rhyming zones is lower than the percentage of verbs in the poem in general. The **null hypothesis** is that the percentage of verbs in rhyming zones is not significantly different from the percentage of verbs in the whole poem. 
+The second part of my project deals with differences between 19th century poems and 20th century poems. Is there any difference in how poets deal with verbs across centuries? The **null hypothesis** here is that there is no difference between 19th century poetry and 20th century poetry as far as verb rhymes are concerned. The **alternative hypothesis** is that there is a significant difference, and 20th century poets tend to use more (or fewer) verb rhymes.
+
+## Data
+For my research I have collected a sample of 5267 poems from the Poetry subcorpus of the Russian National Corpus. From these poems, rhyming pairs are extracted, the texts are POS-tagged, and parts of speech are counted in the poems in general and in rhyming zones in particular. The counts are collected into a csv table, with each poem marked as being written either in the 19th or in the 20th century. The table is mostly filled with integers, with only the "century" column being a factor.
+
+The table does not contain any metainformation about the poems, which is a big shortcoming, as little analysis can be done on the differences between verb rhymes in different poets' work, or verb disproportion in different genres. More metainformation can be added to the table from the corpus in order to develop this research further.
+
+```{r}
+library(tidyverse)
+poetic <- read.csv("poetic.csv")
+
+poetic <- poetic[, c(5, 3, 11, 4, 2, 10, 6, 8, 7, 9)]
+str(poetic)
+```
+
+There are several poems without rhymes in the collection.
+```{r}
+no_rhymes <- poetic[poetic$rhymes == 0, ]
+str(no_rhymes)
+```
+2
+1 poems with no rhymes - they'd better be removed.
+```{r}
+poetic <- poetic[poetic$rhymes > 0, ]
+str(poetic)
+``` 
+
+
+Let's have a look at how the poems in our collection are distributed between centuries.
+```{r}
+poetic %>% 
+  ggplot(aes(century)) +
+  geom_bar(fill = "lightblue") +
+  labs(title = "Poems by century") +
+  theme_bw()
+```
+
+There are noticeably more 20th century poems, this might muddy up the analysis. Let's make an even sample.
+```{r}
+xx_cent <- poetic[poetic$century == "xx", ]
+xix_cent <- poetic[poetic$century == "xix", ]
+
+set.seed(42)
+xx_cent_short <- sample_n(xx_cent, 1528)
+
+poems <- rbind(xix_cent, xx_cent_short)
+str(poems)
+```
+
+There are now 3056 poems in the collection, with exactly one half from the 19th century and one half from the 20th century.
+Let's add some new columns that we'll need later: 
+ - average number of words per line in a poem, 
+ - percentage of verbs in a poem,
+ - percentage of verbs in rhyming zones in a poem.
+
+```{r}
+poems$words_per_line <- round(poems$words / poems$rhymes, 2)
+poems$percentage_verbs <- round(poems$verbs / poems$words, 2)
+poems$percentage_rhyming_verbs <- round(poems$rhyming_verbs / poems$rhymes, 2)
+
+head(poems)
+```
+
+
+How long is a poem on average in the 19th century and in the 20th century?
+```{r}
+poems %>% 
+  ggplot(aes(century, words))+
+  geom_point(aes(color = century)) +
+  labs(title = "Poem length in words by century") +
+  ylab("Number of words") +
+  theme_bw()
+```
+```{r}
+poems %>% 
+  group_by(century) %>% 
+  summarise(mean_words = mean(words))  %>% 
+  ggplot(aes(x = century, y = mean_words)) +
+  geom_col(fill = "lightblue") +
+  labs(title = "Mean poem length in words by century") +
+  ylab("Mean number of words") +
+  theme_bw()
+  
+```
+```{r}
+poems %>% 
+  group_by(century) %>% 
+  summarise(median_words = median(words))  %>% 
+  ggplot(aes(x = century, y = median_words)) +
+  geom_col(fill = "lightblue") +
+  labs(title = "Median poem length in words by century") +
+  ylab("Median number of words") +
+  theme_bw()
+
+```
+
+
+How long are the lines in poems on average?
+```{r}
+poems %>% 
+  group_by(century) %>%
+  summarise(mean_line_length = mean(words_per_line))
+```
+
+
+```{r}
+poems %>% 
+  ggplot(aes(century, words_per_line))+
+  geom_point(aes(color = century)) +
+  labs(title = "Line length in words by century") +
+  ylab("Average of words per line") +
+  theme_bw()
+```
+
+
+
+
+```{r}
+poems %>% 
+  group_by(century) %>%
+  summarise(mean_line_length = mean(words_per_line)) %>% 
+  ggplot(aes(x = century, y = mean_line_length)) +
+  geom_col(fill = "lightblue") +
+  labs(title = "Mean length of line by century") +
+  ylab("Mean length of line") +
+  theme_bw()
+
+```
+
+
+Is the difference significant?
+```{r}
+poems %>% 
+  ggplot(aes(words_per_line, fill = century))+
+  geom_density(alpha = 0.2)
+
+```
+
+```{r}
+xix_cent$words_per_line <- round(xix_cent$words / xix_cent$rhymes, 2)
+xx_cent_short$words_per_line <- round(xx_cent_short$words / xx_cent_short$rhymes, 2)
+
+
+sd(xix_cent$words_per_line)
+sd(xx_cent_short$words_per_line)
+
+```
+
+
+The distributions don't have equal variances. Let's try Welch's t-test.
+```{r}
+t.test(xix_cent$words_per_line, xx_cent_short$words_per_line, alternative = "two.sided", var.equal = FALSE)
+
+```
+
+
+I suppose we can say that 20th century poems have significantly shorter lines than 19th century poems.
+
+
+### Now what about rhyming verbs?
+Let us see if the percentage of verbs in rhyming zones in each poem is significantly different from the percentage of verbs in the whole poem. The binomial test is used: a verb is counted as "success", and the percentage of verbs in the whole poem is the expected probability of verbs in the rhyming zones, to which the observed percentage of verbs will be compared.
+
+```{r}
+
+btest <- function(x, n, p) {binom.test(x, n, p, alternative=
+                           "two.sided", conf.level = 0.95)$p.value}
+poems$pval <- mapply(btest, poems$rhyming_verbs, poems$rhymes, poems$percentage_verbs)
+
+poems$reject_null_hyp <- poems$pval < 0.05
+  
+head(poems)  
+
+```
+
+Apparently, there are some poems with a significant difference in verb percentages inside rhyming zones and in the whole poem. However, there may be more verbs in the rhyming zones, not fewer. Let us ass another column to the dataframe.
+
+```{r}
+poems$fewer_rhyming_verbs <- poems$percentage_rhyming_verbs < poems$percentage_verbs
+
+head(poems)
+```
+
+How many poems are there, where verb rhymes are avoided?
+```{r}
+significantly_fewer_r_verbs <- poems[(poems$fewer_rhyming_verbs == TRUE & 
+                                        poems$reject_null_hyp == TRUE), ]
+str(significantly_fewer_r_verbs)
+```
+
+How many poems are there, where verbs are more likely to appear in rhyming zones?
+```{r}
+significantly_more_r_verbs <- poems[(poems$fewer_rhyming_verbs == FALSE & 
+                                        poems$reject_null_hyp == TRUE), ]
+str(significantly_more_r_verbs)
+```
+
+
+It looks like only 5 poems in the collection of over 3000 avoid verb rhymes. Conversely, there are just over 800 poems where verb are significantly more likely to appear in rhyming zones.
+
+```{r}
+poems %>% 
+  group_by(century, reject_null_hyp) %>% 
+  summarise(n())
+  
+```
+
+```{r}
+poems %>% 
+  group_by(century, reject_null_hyp) %>% 
+  summarise(number = n()) %>% 
+  ggplot(aes(century, reject_null_hyp, label = number)) +
+  geom_point(aes(size = number, color = century))+
+  geom_text() +
+  scale_size(range = c(10, 40))+
+  guides(size = F) +
+  labs(title = "Not much disproportion of verbs in rhyming zones")+
+  ylab("Significance")+
+  theme_bw()
+
+```
+
+We can see a difference between verb disproportion in 19th century and in the 20th century. Is the difference significant? Fisher test to the rescue.
+```{r}
+contingency_table <- matrix(c(511, 1017, 303, 1225), nrow = 2, ncol = 2, byrow = TRUE)
+dimnames(contingency_table) <- list(c("XIX century", "XX century"),
+                                    c("more rhyming verbs", "no disproportion"))
+                                  
+contingency_table
+```
+
+```{r}
+fisher.test(contingency_table)
+```
+
+
+
+Apparently, we can conclude that the majority of poems in our sample do not show a disproporion of verbs in rhyming zones. Only 5 poems in the entire sample of over 3000 poems are significantly less likely to allow verbs in rhyming zones. Conversely, about a quarter of all poems in the sample are more show more verbs in the rhyming zone than in the poem in general. This preference is significantly more likely to occur in 19th century poems as opposed to 20th century poems.
+
+
+
+
+## Conclusion
+The hypothesis about verb rhymes being unpopular stands no chance. Only 5 poems in the collection show a significant lack of verbs in rhyming zones, and even there the significance may be doubted -- the p-value is not very low, in some cases very close to 5%. For about three quarters of the collection, no significant difference is seen in the percentage of verbs inside and outside rhyming zones. In 26% of the poems, verbs are actually more likely to appear in rhyming zones, and this is more likely to happen in 19th century poetry than in 20th century poetry.
+
+Due to data drawbacks, it is difficult to make conclusions about verb rhymes in general. The dataset contains no information about the authors of poems: for further research, authors can be taken into account to see if the poems where more verbs appear in rhyming zones are written by less critically acclaimed authors, who choose verbs because they were easier to rhyme.
+
